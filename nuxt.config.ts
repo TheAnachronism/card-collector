@@ -4,7 +4,13 @@ import { resolve } from "path";
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
-  modules: ["@nuxt/eslint", "shadcn-nuxt", "convex-nuxt", "nuxt-lucide-icons"],
+  modules: [
+    "@nuxt/eslint",
+    "shadcn-nuxt",
+    "convex-nuxt",
+    "nuxt-lucide-icons",
+    "@nuxtjs/color-mode",
+  ],
   css: ["~/assets/css/tailwind.css"],
   alias: {
     "@": resolve(__dirname, "./app/"),
@@ -18,6 +24,12 @@ export default defineNuxtConfig({
   },
   lucide: {
     namePrefix: "Icon",
+  },
+  colorMode: {
+    preference: "dark",
+    classSuffix: "",
+    disableTransition: false,
+    storage: "localStorage",
   },
   vite: {
     plugins: [tailwindcss()],

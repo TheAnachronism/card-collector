@@ -1,15 +1,31 @@
-<script setup lang="ts">
-import { api } from "../convex/_generated/api";
-const { data: collections } = useConvexQuery(api.collections.getCollections);
-</script>
+<script setup lang="ts"></script>
 
 <template>
-  <div>
-    <h1>Collections</h1>
-    <ul>
-      <li v-for="collection in collections" :key="collection._id">
-        <span>{{ collection.name }}</span>
-      </li>
-    </ul>
+  <div class="min-h-dvh relative">
+    <div class="app-gradient" />
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
   </div>
 </template>
+
+<style>
+.page-enter-active,
+.page-leave-active,
+.layout-enter-active,
+.layout-leave-active {
+  transition:
+    opacity 180ms ease,
+    transform 220ms ease;
+}
+.page-enter-from,
+.layout-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+.page-leave-to,
+.layout-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+</style>
