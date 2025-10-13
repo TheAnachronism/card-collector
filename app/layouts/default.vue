@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { authClient } from "@/lib/auth-client";
 
 /* Icons (optional) */
 import {
@@ -22,6 +23,8 @@ const primaryNav = [
   { label: "Decks", icon: FolderKanban, to: "/decks" },
   { label: "Settings", icon: Settings, to: "/settings" },
 ];
+
+const session = authClient.useSession();
 </script>
 
 <template>
@@ -141,7 +144,7 @@ const primaryNav = [
                     alt="User"
                   />
                 </Avatar>
-                <span class="hidden text-sm md:inline">You</span>
+                <span class="hidden text-sm md:inline">{{ session.data?.user.name ?? "You" }}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" class="w-48">
