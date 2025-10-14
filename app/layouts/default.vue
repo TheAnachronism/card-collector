@@ -25,6 +25,10 @@ const primaryNav = [
 ];
 
 const session = authClient.useSession();
+
+watch(session, (newVal) => {
+  console.log(newVal.data);
+});
 </script>
 
 <template>

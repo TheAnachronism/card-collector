@@ -1,14 +1,18 @@
 <script setup lang="ts">
+import type { ConvexClient } from 'convex/browser';
 
+const client = useConvexClient() as unknown as ConvexClient
 </script>
 
 <template>
-  <div class="min-h-dvh relative">
-    <div class="app-gradient" />
-    <NuxtLayout>
-      <NuxtPage />
-    </NuxtLayout>
-  </div>
+  <ConvexBetterAuthProvider :client="client">
+    <div class="min-h-dvh relative">
+      <div class="app-gradient" />
+      <NuxtLayout>
+        <NuxtPage />
+      </NuxtLayout>
+    </div>
+  </ConvexBetterAuthProvider>
 </template>
 
 <style>

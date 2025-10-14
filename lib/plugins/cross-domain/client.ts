@@ -17,20 +17,87 @@ export function parseSetCookieHeader(
   header: string
 ): Map<string, CookieAttributes> {
   const cookieMap = new Map<string, CookieAttributes>();
-  const cookies = header.split(", ");
-  cookies.forEach((cookie) => {
-    const [nameValue, ...attributes] = cookie.split("; ");
-    const [name, value] = nameValue.split("=");
+
+  // Safely split combined Set-Cookie header into individual cookie strings.
+  // We cannot simply split on ", " because Expires attributes contain commas.
+  const parts: string[] = [];
+  let start = 0;
+  let inExpires = false;
+  for (let i = 0; i < header.length; i++) {
+    const char = header[i];
+    // Detect start of Expires attribute (case-insensitive)
+    if (!inExpires && header.slice(i, i + 8).toLowerCase() === "expires=") {
+      inExpires = true;
+    }
+    if (inExpires && char === ";") {
+      // Expires attribute ended
+      inExpires = false;
+    }
+    if (char === "," && !inExpires) {
+      // Split between cookies, trim any trailing space after comma
+      parts.push(header.slice(start, i).trim());
+      // Skip a space after comma if present
+      if (header[i + 1] === " ") {
+        start = i + 2;
+      } else {
+        start = i + 1;
+      }
+    }
+  }
+  // Push last segment
+  if (start <= header.length) {
+    const last = header.slice(start).trim();
+    if (last) parts.push(last);
+  }
+
+  for (const cookie of parts) {
+    const segments = cookie.split(/;\s*/);
+    const nameValue = segments.shift();
+    if (!nameValue) continue;
+    const eqIdx = nameValue.indexOf("=");
+    if (eqIdx === -1) continue;
+    const name = nameValue.slice(0, eqIdx);
+    const value = nameValue.slice(eqIdx + 1);
 
     const cookieObj: CookieAttributes = { value };
 
-    attributes.forEach((attr) => {
-      const [attrName, attrValue] = attr.split("=");
-      cookieObj[attrName.toLowerCase() as "value"] = attrValue;
-    });
+    for (const attr of segments) {
+      const [attrNameRaw, ...attrValParts] = attr.split("=");
+      const attrName = (attrNameRaw || "").toLowerCase();
+      const attrValue = attrValParts.join("=");
+      // Attributes like Secure/HttpOnly may be flags without values
+      if (!attrName) continue;
+      if (attrName === "expires") {
+        (cookieObj as CookieAttributes).expires = attrValue
+          ? new Date(attrValue)
+          : undefined;
+      } else if (attrName === "max-age") {
+        (cookieObj as CookieAttributes)["max-age"] = attrValue
+          ? Number(attrValue)
+          : undefined;
+      } else if (
+        attrName === "domain" ||
+        attrName === "path" ||
+        attrName === "samesite"
+      ) {
+        // Assign as string attributes
+        (
+          cookieObj as unknown as Record<
+            "domain" | "path" | "samesite",
+            string | boolean
+          >
+        )[attrName as "domain" | "path" | "samesite"] = attrValue || "";
+      } else if (attrName === "secure" || attrName === "httponly") {
+        if (attrName === "secure") {
+          (cookieObj as CookieAttributes).secure = true;
+        } else {
+          (cookieObj as CookieAttributes).httpOnly = true;
+        }
+      }
+    }
 
     cookieMap.set(name, cookieObj);
-  });
+  }
 
   return cookieMap;
 }
@@ -77,19 +144,20 @@ export function getCookie(cookie: string) {
   } catch {
     // noop
   }
-  const toSend = Object.entries(parsed).reduce((acc, [key, value]) => {
+  const pairs: string[] = [];
+  for (const [key, value] of Object.entries(parsed)) {
     if (value.expires && value.expires < new Date()) {
-      return acc;
+      continue;
     }
-    return `${acc}; ${key}=${value.value}`;
-  }, "");
-  return toSend;
+    pairs.push(`${key}=${value.value}`);
+  }
+  return pairs.join("; ");
 }
 
 export const crossDomainClient = (
   opts: {
     storage?: {
-      setItem: (key: string, value: string) => any;
+      setItem: (key: string, value: string) => void;
       getItem: (key: string) => string | null;
     };
     storagePrefix?: string;
@@ -164,9 +232,13 @@ export const crossDomainClient = (
             if (!storage) {
               return;
             }
-            const setCookie = context.response.headers.get(
-              "set-better-auth-cookie"
-            );
+            // Collect all occurrences of the custom header (case-insensitive)
+            let setCookie = "";
+            for (const [key, value] of context.response.headers.entries()) {
+              if (key.toLowerCase() === "set-better-auth-cookie") {
+                setCookie = setCookie ? `${setCookie}, ${value}` : value;
+              }
+            }
             if (setCookie) {
               const prevCookie = await storage.getItem(cookieName);
               const toSetCookie = getSetCookie(

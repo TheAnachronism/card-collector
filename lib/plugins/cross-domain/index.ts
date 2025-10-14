@@ -56,8 +56,7 @@ export const crossDomain = ({ siteUrl }: { siteUrl: string }) => {
             );
           },
           handler: createAuthMiddleware(async (ctx) => {
-            const existingHeaders = (ctx.request?.headers ||
-              ctx.headers) as Headers;
+            const existingHeaders = (ctx.request?.headers || ctx.headers) as Headers;
             const headers = new Headers({
               ...Object.fromEntries(Object.entries(existingHeaders)),
             });
@@ -65,11 +64,15 @@ export const crossDomain = ({ siteUrl }: { siteUrl: string }) => {
             if (headers.get("authorization")) {
               return;
             }
-            const cookie = headers.get("better-auth-cookie");
-            if (!cookie) {
+            const forwardedCookie = headers.get("better-auth-cookie");
+            if (!forwardedCookie) {
               return;
             }
-            headers.append("cookie", cookie);
+            const existingCookie = headers.get("cookie") || "";
+            const mergedCookie = existingCookie
+              ? `${existingCookie}; ${forwardedCookie}`
+              : forwardedCookie;
+            headers.set("cookie", mergedCookie);
             return {
               context: {
                 headers,
