@@ -56,10 +56,9 @@ export const crossDomain = ({ siteUrl }: { siteUrl: string }) => {
             );
           },
           handler: createAuthMiddleware(async (ctx) => {
-            const existingHeaders = (ctx.request?.headers || ctx.headers) as Headers;
-            const headers = new Headers({
-              ...Object.fromEntries(Object.entries(existingHeaders)),
-            });
+            const baseHeaders = (ctx.request?.headers || ctx.headers) as Headers;
+            // Properly clone the headers; Object.entries on Headers does not yield entries
+            const headers = new Headers(baseHeaders);
             // Skip if the request has an authorization header
             if (headers.get("authorization")) {
               return;
@@ -73,9 +72,24 @@ export const crossDomain = ({ siteUrl }: { siteUrl: string }) => {
               ? `${existingCookie}; ${forwardedCookie}`
               : forwardedCookie;
             headers.set("cookie", mergedCookie);
+
+            // Also update the actual Request so downstream middleware reads the cookie
+            let newRequest = ctx.request;
+            try {
+              if (ctx.request) {
+                newRequest = new Request(ctx.request, { headers });
+              } else {
+                // Fallback: construct a minimal Request if missing
+                const url = `${process.env.CONVEX_SITE_URL || ""}${ctx.path || ""}`;
+                newRequest = new Request(url, { headers, method: ctx.method || "GET" });
+              }
+            } catch {
+              // ignore; headers in context still help in many code paths
+            }
             return {
               context: {
                 headers,
+                request: newRequest,
               },
             };
           }),
