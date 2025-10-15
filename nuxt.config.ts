@@ -10,6 +10,7 @@ export default defineNuxtConfig({
     "convex-nuxt",
     "nuxt-lucide-icons",
     "@nuxtjs/color-mode",
+    "@pinia/nuxt",
   ],
   css: ["~/assets/css/tailwind.css"],
   alias: {

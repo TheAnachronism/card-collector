@@ -23,11 +23,7 @@ const primaryNav = [
     { label: "Settings", icon: Settings, to: "/settings" },
 ];
 
-const session = authClient.useSession();
-const isLoading = computed(() => session.value.isPending);
-const isAuthenticated = computed(() => !!session.value.data?.session);
-const userName = computed(() => session.value.data?.user?.name ?? "You");
-const userImage = computed(() => session.value.data?.user.image ?? "");
+const authStore = useAuthStore();
 </script>
 
 <template>
@@ -137,81 +133,95 @@ const userImage = computed(() => session.value.data?.user.image ?? "");
                 </div>
 
                 <!-- Right: actions -->
-                <div class="flex items-center gap-1">
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger as-child>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    aria-label="Quick add"
-                                >
-                                    <Plus class="size-5" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom"
-                                >Quick add</TooltipContent
-                            >
-                        </Tooltip>
-                    </TooltipProvider>
+                <ClientOnly fallback-tag="span">
+                    <div class="flex items-center gap-1">
+                        <Authenticated>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger as-child>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            aria-label="Quick add"
+                                        >
+                                            <Plus class="size-5" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom"
+                                        >Quick add</TooltipContent
+                                    >
+                                </Tooltip>
+                            </TooltipProvider>
+                        </Authenticated>
 
-                    <!-- Loading state -->
-                    <Button
-                        v-if="isLoading"
-                        variant="ghost"
-                        class="ml-1 flex items-center gap-2 px-2.5"
-                        disabled
-                    >
-                        <Avatar class="size-6">
-                            <img :src="userImage" alt="User" />
-                            <AvatarFallback>
-                                <User class="size-4" />
-                            </AvatarFallback>
-                        </Avatar>
-                        <span class="hidden text-sm md:inline">Loading…</span>
-                    </Button>
-
-                    <!-- Authenticated state -->
-                    <DropdownMenu v-else-if="isAuthenticated">
-                        <DropdownMenuTrigger as-child>
+                        <!-- Loading state -->
+                        <AuthLoading>
                             <Button
                                 variant="ghost"
                                 class="ml-1 flex items-center gap-2 px-2.5"
+                                disabled
                             >
                                 <Avatar class="size-6">
-                                    <img :src="userImage" alt="User" />
-                                    <AvatarFallback>
-                                        <User class="size-4" />
-                                    </AvatarFallback>
+                                    <User class="size-6" />
                                 </Avatar>
-                                <span class="hidden text-sm md:inline">{{
-                                    userName
-                                }}</span>
+                                <span class="hidden text-sm md:inline"
+                                    >Loading…</span
+                                >
                             </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" class="w-48">
-                            <DropdownMenuLabel>Account</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>
-                                <User class="mr-2 size-4" /> Profile
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                                class="text-red-400"
-                                @click="authClient.signOut()"
-                            >
-                                <LogOut class="mr-2 size-4" /> Sign out
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                        </AuthLoading>
 
-                    <!-- Unauthenticated state -->
-                    <NuxtLink v-else to="/login">
-                        <Button variant="default" class="ml-1 px-3"
-                            >Sign in</Button
-                        >
-                    </NuxtLink>
-                </div>
+                        <!-- Authenticated state -->
+                        <Authenticated>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger as-child>
+                                    <Button
+                                        variant="ghost"
+                                        class="ml-1 flex items-center gap-2 px-2.5"
+                                    >
+                                        <Avatar class="size-6">
+                                            <AvatarImage
+                                                v-if="authStore.userImage"
+                                                :src="authStore.userImage"
+                                                alt="User"
+                                            />
+                                            <AvatarFallback>
+                                                <User class="size-4" />
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <span
+                                            class="hidden text-sm md:inline"
+                                            >{{ authStore.userName }}</span
+                                        >
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" class="w-48">
+                                    <DropdownMenuLabel
+                                        >Account</DropdownMenuLabel
+                                    >
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem>
+                                        <User class="mr-2 size-4" /> Profile
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                        class="text-red-400"
+                                        @click="authClient.signOut()"
+                                    >
+                                        <LogOut class="mr-2 size-4" /> Sign out
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </Authenticated>
+
+                        <Unauthenticated>
+                            <NuxtLink to="/login">
+                                <Button variant="default" class="ml-1 px-3"
+                                    >Sign in</Button
+                                >
+                            </NuxtLink>
+                        </Unauthenticated>
+                    </div>
+                </ClientOnly>
             </div>
         </header>
 
