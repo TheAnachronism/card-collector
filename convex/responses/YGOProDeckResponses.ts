@@ -24,6 +24,15 @@ const YGOProDeckBanlistInfoSchema = v.object({
     ban_tcg: v.union(v.literal("Forbidden"), v.literal("Limited"), v.literal("Semi-Limited")),
 })
 
+export const YGOProDeckCardImageSchema = v.object({
+    id: v.number(),
+    image_url: v.string(),
+    image_url_small: v.string(),
+    image_url_cropped: v.string(),
+});
+
+export type YGOProDeckCardImage = Infer<typeof YGOProDeckCardImageSchema>;
+
 export const YGOProDeckCardSchema = v.object({
     id: v.number(),
     name: v.string(),
@@ -37,6 +46,7 @@ export const YGOProDeckCardSchema = v.object({
     archetype: v.optional(v.string()),
     attribute: v.optional(v.string()),
     linkval: v.optional(v.number()),
+    linkmarkers: v.optional(v.array(v.string())),
     typeline: v.optional(v.array(v.string())),
     ygoprodeck_url: v.optional(v.string()),
     humanReadableCardType: v.optional(v.string()),
@@ -44,12 +54,7 @@ export const YGOProDeckCardSchema = v.object({
     card_sets: v.array(YGOProDeckCardSetSchema),
     card_prices: v.optional(v.array(YGOProDeckCardPricesSchema)),
     card_images: v.array(
-        v.object({
-            id: v.number(),
-            image_url: v.string(),
-            image_url_small: v.string(),
-            image_url_cropped: v.string(),
-        }),
+        YGOProDeckCardImageSchema,
     ),
 });
 

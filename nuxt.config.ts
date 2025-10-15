@@ -11,6 +11,7 @@ export default defineNuxtConfig({
     "nuxt-lucide-icons",
     "@nuxtjs/color-mode",
     "@pinia/nuxt",
+    "@nuxt/image",
   ],
   css: ["~/assets/css/tailwind.css"],
   alias: {
@@ -18,6 +19,12 @@ export default defineNuxtConfig({
   },
   convex: {
     url: process.env.CONVEX_URL,
+  },
+  image: {
+    domains: ["img.ygoprodeck.com"],
+    alias: {
+      ygoprodeck: "https://img.ygoprodeck.com",
+    }
   },
   shadcn: {
     prefix: "",

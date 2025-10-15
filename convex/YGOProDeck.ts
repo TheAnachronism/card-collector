@@ -9,13 +9,16 @@ const YGOProDeckCardInfoEndpoint =
 
 export const fetchBySetCode = internalAction({
     args: { setCode: v.string() },
-    handler: async (ctx, { setCode }): Promise<YGOProDeckCardSetInfo> => {
+    handler: async (ctx, { setCode }): Promise<YGOProDeckCardSetInfo | null> => {
         // Replace the two-letter code with 'EN'
         setCode = setCode.replace(/-(?:[A-Z]{2})(\d{3,})$/, "-EN$1");
         const url = `${YGOProDeckCardSetInfoEndpoint}?setcode=${encodeURIComponent(
             setCode,
         )}`;
         const res = await fetch(url, { cache: "no-store" });
+        if(res.status === 400) {
+            return null;
+        }
         if (!res.ok) {
             throw new Error(`YGOProDeck error ${res.status}`);
         }
@@ -26,22 +29,31 @@ export const fetchBySetCode = internalAction({
 
 export const fetchFullCardInfoById = internalAction({
     args: { id: v.number() },
-    handler: async (ctx, { id }) => {
+    handler: async (ctx, { id }): Promise<YGOProDeckCard[]> => {
         const url = `${YGOProDeckCardInfoEndpoint}?id=${id}`;
         const res = await fetch(url, { cache: "no-store" });
+        if(res.status === 400) {
+            return [];
+        }
         if (!res.ok) {
             throw new Error(`YGOProDeck error ${res.status}`);
         }
         const body = (await res.json()) as { data: YGOProDeckCard[] };
+        for(const card of body.data) {
+            card.def = card.def && card.def > 0 ? card.def : undefined;
+        }
         return body.data;
     },
 });
 
 export const fetchByCardName = internalAction({
     args: { name: v.string() },
-    handler: async (ctx, { name }) => {
-        const url = `${YGOProDeckCardInfoEndpoint}?name=${name}`;
+    handler: async (ctx, { name }): Promise<YGOProDeckCard[]> => {
+        const url = `${YGOProDeckCardInfoEndpoint}?fname=${name}`;
         const res = await fetch(url, { cache: "no-store" });
+        if(res.status === 400) {
+            return [];
+        }
         if (!res.ok) {
             throw new Error(`YGOProDeck error ${res.status}`);
         }

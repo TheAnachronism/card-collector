@@ -4,7 +4,8 @@ import { v } from "convex/values";
 import {
     YGOProDeckCardSchema,
     type YGOProDeckCard,
-    type YGOProDeckCardSetInfo,
+    type YGOProDeckCardSet,
+    type YGOProDeckCardImage,
 } from "./responses/YGOProDeckResponses";
 
 // Upsert minimal card records into `cards`
@@ -63,13 +64,31 @@ export const upsertCards = internalMutation({
 // Convenience: server-side search by set code (fetch + upsert + return)
 export const searchBySetCode = action({
     args: { setCode: v.string() },
-    handler: async (ctx, { setCode }) => {
-        const setCodeCard = (await ctx.runAction(
+    handler: async (
+        ctx,
+        { setCode },
+    ): Promise<
+        {
+            id: number;
+            name: string;
+            type: string;
+            frameType: string;
+            race: string | undefined;
+            attribute: string | null;
+            card_sets: YGOProDeckCardSet[];
+            card_images: YGOProDeckCardImage[];
+        }[]
+    > => {
+        const setCodeCard = await ctx.runAction(
             internal.YGOProDeck.fetchBySetCode,
             {
                 setCode,
             },
-        )) as YGOProDeckCardSetInfo;
+        );
+
+        if (!setCodeCard) {
+            return [];
+        }
 
         const fullCardInfos = (await ctx.runAction(
             internal.YGOProDeck.fetchFullCardInfoById,
@@ -77,6 +96,10 @@ export const searchBySetCode = action({
                 id: setCodeCard.id,
             },
         )) as YGOProDeckCard[];
+
+        if (!fullCardInfos) {
+            return [];
+        }
 
         await ctx.runMutation(internal.cards.upsertCards, {
             cards: fullCardInfos,
@@ -97,13 +120,18 @@ export const searchBySetCode = action({
 
 export const searchByCardName = action({
     args: { name: v.string() },
-    handler: async (ctx, { name }) => {
-        const fullCardInfos = (await ctx.runAction(
+    handler: async (ctx, { name }): Promise<YGOProDeckCard[]> => {
+        const fullCardInfos = await ctx.runAction(
             internal.YGOProDeck.fetchByCardName,
             {
                 name,
             },
-        )) as YGOProDeckCard[];
+        );
+
+        if (!fullCardInfos) {
+            return [];
+        }
+
         await ctx.runMutation(internal.cards.upsertCards, {
             cards: fullCardInfos,
         });
