@@ -17,7 +17,7 @@ import {
 const mobileOpen = ref(false);
 
 const primaryNav = [
-    { label: "Collection", icon: Library, to: "/" },
+    { label: "Collections", icon: Library, to: "/collections" },
     { label: "Search", icon: Search, to: "/search" },
     { label: "Decks", icon: FolderKanban, to: "/decks" },
     { label: "Settings", icon: Settings, to: "/settings" },
