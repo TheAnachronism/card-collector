@@ -8,19 +8,28 @@ const cardSetSchema = v.object({
     setRarityCode: v.string(),
 });
 
+const cardImageSchema = v.object({
+    id: v.number(),
+    imageUrl: v.string(),
+    imageUrlSmall: v.string(),
+    imageUrlCropped: v.string(),
+});
+
 export default defineSchema({
     cards: defineTable({
+        ygoId: v.number(),
         name: v.string(),
         type: v.string(),
         frameType: v.string(),
         description: v.string(),
-        atk: v.number(),
-        def: v.number(),
-        level: v.number(),
+        atk: v.optional(v.number()),
+        def: v.optional(v.number()),
+        level: v.optional(v.number()),
         race: v.string(),
-        attribute: v.string(),
-        cardSets: cardSetSchema,
-    }),
+        attribute: v.optional(v.string()),
+        cardSets: v.array(cardSetSchema),
+        cardImages: v.array(cardImageSchema),
+    }).index("ygoId", ["ygoId"]),
     ownedCards: defineTable({
         user: v.id("user"),
         card: v.id("cards"),
