@@ -1,6 +1,7 @@
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import type { YGOProDeckCardSetInfo, YGOProDeckCard } from "./responses/YGOProDeckResponses";
+import { fixSetCode } from "./lib/cardUtils";
 
 const YGOProDeckCardSetInfoEndpoint =
     "https://db.ygoprodeck.com/api/v7/cardsetsinfo.php";
@@ -11,7 +12,7 @@ export const fetchBySetCode = internalAction({
     args: { setCode: v.string() },
     handler: async (ctx, { setCode }): Promise<YGOProDeckCardSetInfo | null> => {
         // Replace the two-letter code with 'EN'
-        setCode = setCode.replace(/-(?:[A-Z]{2})(\d{3,})$/, "-EN$1");
+        setCode = fixSetCode(setCode);
         const url = `${YGOProDeckCardSetInfoEndpoint}?setcode=${encodeURIComponent(
             setCode,
         )}`;

@@ -1,5 +1,6 @@
-import { action, internalMutation } from "./_generated/server";
+import { action, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import {
     YGOProDeckCardSchema,
@@ -7,6 +8,37 @@ import {
     type YGOProDeckCardSet,
     type YGOProDeckCardImage,
 } from "./responses/YGOProDeckResponses";
+import { fixSetCode } from "./lib/cardUtils";
+
+export const findCardBySetCode = internalQuery({
+    args: { setCode: v.string() },
+    handler: async (ctx, { setCode }) => {
+        setCode = fixSetCode(setCode);
+        const cardSet = await ctx.db
+            .query("cardSets")
+            .withIndex("setCode", (q) => q.eq("setCode", setCode))
+            .first();
+
+        if (!cardSet) {
+            return null;
+        }
+        const card = await ctx.db.get(cardSet.cardId);
+
+        if (!card) {
+            return null;
+        }
+
+        const cardSets = await ctx.db
+            .query("cardSets")
+            .withIndex("cardId", (q) => q.eq("cardId", card._id))
+            .collect();
+
+        return {
+            ...card,
+            cardSets: cardSets,
+        };
+    },
+});
 
 // Upsert minimal card records into `cards`
 export const upsertCards = internalMutation({
@@ -48,14 +80,39 @@ export const upsertCards = internalMutation({
                 level: c.level ?? c.linkval ?? undefined,
                 race: c.race as string,
                 attribute: c.attribute ?? undefined,
-                cardSets: cardSets,
                 cardImages: cardImages,
             };
 
+            let cardId: Id<"cards">;
+
             if (existing) {
                 await ctx.db.patch(existing._id, doc);
+                cardId = existing._id;
             } else {
-                await ctx.db.insert("cards", doc);
+                cardId = await ctx.db.insert("cards", doc);
+            }
+
+            const existingCardSets = await ctx.db
+                .query("cardSets")
+                .withIndex("cardId", (q) => q.eq("cardId", cardId))
+                .collect();
+
+            const existingCardSetCodes = new Set(
+                existingCardSets.map((s) => s.setCode),
+            );
+
+            const cardSetDocs = cardSets
+                .filter((s) => !existingCardSetCodes.has(s.setCode))
+                .map((s) => ({
+                    cardId,
+                    name: s.name,
+                    setCode: s.setCode,
+                    setRarity: s.setRarity,
+                    setRarityCode: s.setRarityCode,
+                }));
+
+            for (const s of cardSetDocs) {
+                await ctx.db.insert("cardSets", s);
             }
         }
     },
@@ -79,6 +136,36 @@ export const searchBySetCode = action({
             card_images: YGOProDeckCardImage[];
         }[]
     > => {
+        const dbCard = await ctx.runQuery(internal.cards.findCardBySetCode, {
+            setCode,
+        });
+
+        if (dbCard) {
+            return [
+                {
+                    id: dbCard.ygoId,
+                    name: dbCard.name,
+                    type: dbCard.type,
+                    frameType: dbCard.frameType,
+                    race: dbCard.race,
+                    attribute: dbCard.attribute ?? null,
+                    card_sets: dbCard.cardSets.map((s) => ({
+                        set_name: s.name,
+                        set_code: s.setCode,
+                        set_price: s.setRarity,
+                        set_rarity: s.setRarity,
+                        set_rarity_code: s.setRarityCode,
+                    })),
+                    card_images: dbCard.cardImages.map((i) => ({
+                        id: i.id,
+                        image_url: i.imageUrl,
+                        image_url_small: i.imageUrlSmall,
+                        image_url_cropped: i.imageUrlCropped,
+                    })),
+                },
+            ];
+        }
+
         const setCodeCard = await ctx.runAction(
             internal.YGOProDeck.fetchBySetCode,
             {

@@ -13,6 +13,7 @@ import type * as auth from "../auth.js";
 import type * as cards from "../cards.js";
 import type * as collections from "../collections.js";
 import type * as http from "../http.js";
+import type * as lib_cardUtils from "../lib/cardUtils.js";
 import type * as responses_YGOProDeckResponses from "../responses/YGOProDeckResponses.js";
 
 import type {
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   cards: typeof cards;
   collections: typeof collections;
   http: typeof http;
+  "lib/cardUtils": typeof lib_cardUtils;
   "responses/YGOProDeckResponses": typeof responses_YGOProDeckResponses;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

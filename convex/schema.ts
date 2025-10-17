@@ -1,13 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
-const cardSetSchema = v.object({
-    name: v.string(),
-    setCode: v.string(),
-    setRarity: v.string(),
-    setRarityCode: v.string(),
-});
-
 const cardImageSchema = v.object({
     id: v.number(),
     imageUrl: v.string(),
@@ -27,9 +20,17 @@ export default defineSchema({
         level: v.optional(v.number()),
         race: v.string(),
         attribute: v.optional(v.string()),
-        cardSets: v.array(cardSetSchema),
         cardImages: v.array(cardImageSchema),
     }).index("ygoId", ["ygoId"]),
+    cardSets: defineTable({
+        cardId: v.id("cards"),
+        name: v.string(),
+        setCode: v.string(),
+        setRarity: v.string(),
+        setRarityCode: v.string(),
+    })
+        .index("cardId", ["cardId"])
+        .index("setCode", ["setCode"]),
     ownedCards: defineTable({
         user: v.id("user"),
         card: v.id("cards"),
