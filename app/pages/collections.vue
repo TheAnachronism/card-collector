@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, watch } from "vue";
 import type { ConvexClient } from "convex/browser";
 import type { FunctionReference } from "convex/server";
 import { api as apiUntyped } from "~~/convex/_generated/api";
 import type { Id } from "~~/convex/_generated/dataModel";
+import { useAuthStore } from "@/stores/auth";
 
 const client = useConvexClient() as unknown as ConvexClient;
 
@@ -45,8 +46,13 @@ const collections = ref<CollectionDoc[]>([]);
 const isLoading = ref(false);
 const error = ref<string | null>(null);
 const newName = ref("");
+const auth = useAuthStore();
 
 async function loadCollections() {
+    if (!auth.isAuthenticated) {
+        collections.value = [];
+        return;
+    }
     isLoading.value = true;
     error.value = null;
     try {
@@ -66,6 +72,7 @@ async function loadCollections() {
 }
 
 async function onCreate() {
+    if (!auth.isAuthenticated) return;
     const name = newName.value.trim();
     if (!name) return;
     error.value = null;
@@ -83,6 +90,7 @@ async function onCreate() {
 }
 
 async function onDelete(id: Id<"collections">) {
+    if (!auth.isAuthenticated) return;
     const confirmed = window.confirm(
         "Delete this collection? This cannot be undone.",
     );
@@ -100,67 +108,76 @@ async function onDelete(id: Id<"collections">) {
     }
 }
 
-onMounted(loadCollections);
+watch(
+    () => auth.status,
+    (status) => {
+        if (status === "authenticated") {
+            loadCollections();
+        } else {
+            collections.value = [];
+            isLoading.value = false;
+            error.value = null;
+        }
+    },
+    { immediate: true },
+);
 </script>
 
 <template>
     <div class="space-y-6">
-        <div
-            class="glass p-4 md:p-5 flex items-center justify-between gap-3 shadow-md"
-        >
-            <div>
-                <h1 class="text-lg font-semibold tracking-tight">
-                    Welcome back
-                </h1>
-                <p class="text-sm">Manage your Yugioh collection and decks.</p>
-            </div>
-        </div>
-
-        <Card class="glass p-4 space-y-3">
-            <h2 class="text-sm font-medium">Collections</h2>
-            <div class="flex gap-2">
-                <Input
-                    v-model="newName"
-                    placeholder="New collection name"
-                    class="flex-1"
-                    @keydown.enter="onCreate"
-                />
-                <Button :disabled="!newName || isLoading" @click="onCreate">
-                    {{ isLoading ? "Saving…" : "Create" }}
-                </Button>
-            </div>
-            <p v-if="error" class="text-sm text-red-500">{{ error }}</p>
-        </Card>
-
-        <div
-            v-if="collections.length"
-            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-        >
-            <Card
-                v-for="c in collections"
-                :key="c._id"
-                class="glass p-4 flex items-center justify-between gap-3"
-            >
-                <div class="min-w-0">
-                    <NuxtLink :to="`/collections/${c._id}`" class="block">
-                        <div class="font-medium truncate">{{ c.name }}</div>
-                        <div class="text-xs text-muted-foreground">
-                            {{ c.cards?.length || 0 }} cards
-                        </div>
-                    </NuxtLink>
+        <template v-if="auth.isAuthenticated">
+            <Card class="glass p-4 space-y-3">
+                <h2 class="text-sm font-medium">Collections</h2>
+                <div class="flex gap-2">
+                    <Input
+                        v-model="newName"
+                        placeholder="New collection name"
+                        class="flex-1"
+                        :disabled="isLoading"
+                        @keydown.enter="onCreate"
+                    />
+                    <Button :disabled="!newName || isLoading" @click="onCreate">
+                        {{ isLoading ? "Saving…" : "Create" }}
+                    </Button>
                 </div>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    class="text-red-500 hover:text-red-600"
-                    @click="onDelete(c._id)"
-                >
-                    <IconTrash2 class="w-4 h-4" />
-                </Button>
+                <p v-if="error" class="text-sm text-red-500">{{ error }}</p>
             </Card>
-        </div>
-        <div v-else class="text-sm text-muted-foreground">
-            You have no collections yet. Create one to get started.
-        </div>
+
+            <div
+                v-if="collections.length"
+                class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+            >
+                <Card
+                    v-for="c in collections"
+                    :key="c._id"
+                    class="glass p-4 flex items-center justify-between gap-3"
+                >
+                    <div class="min-w-0">
+                        <NuxtLink :to="`/collections/${c._id}`" class="block">
+                            <div class="font-medium truncate">{{ c.name }}</div>
+                            <div class="text-xs text-muted-foreground">
+                                {{ c.cards?.length || 0 }} cards
+                            </div>
+                        </NuxtLink>
+                    </div>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        class="text-red-500 hover:text-red-600"
+                        :disabled="isLoading"
+                        @click="onDelete(c._id)"
+                    >
+                        <IconTrash2 class="w-4 h-4" />
+                    </Button>
+                </Card>
+            </div>
+            <div v-else class="text-sm text-muted-foreground">
+                You have no collections yet. Create one to get started.
+            </div>
+        </template>
+        <AuthSignInBlock
+            title="Collections"
+            description="Sign in to create and manage your collections."
+        />
     </div>
 </template>
