@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
 import type { ConvexClient } from "convex/browser";
 import type { FunctionReference } from "convex/server";
 import { api as apiUntyped } from "~~/convex/_generated/api";
@@ -147,29 +146,12 @@ watch(
                 v-if="collections.length"
                 class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
             >
-                <Card
+                <CollectionCard
                     v-for="c in collections"
                     :key="c._id"
-                    class="glass p-4 flex items-center justify-between gap-3"
-                >
-                    <div class="min-w-0">
-                        <NuxtLink :to="`/collections/${c._id}`" class="block">
-                            <div class="font-medium truncate">{{ c.name }}</div>
-                            <div class="text-xs text-muted-foreground">
-                                {{ c.cards?.length || 0 }} cards
-                            </div>
-                        </NuxtLink>
-                    </div>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        class="text-red-500 hover:text-red-600"
-                        :disabled="isLoading"
-                        @click="onDelete(c._id)"
-                    >
-                        <IconTrash2 class="w-4 h-4" />
-                    </Button>
-                </Card>
+                    :collection="c"
+                    :on-delete="onDelete"
+                />
             </div>
             <div v-else class="text-sm text-muted-foreground">
                 You have no collections yet. Create one to get started.

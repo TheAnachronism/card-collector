@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Collections from "./collections.vue";
+import Collections from "./collections/index.vue";
 </script>
 
 <template>

@@ -27,6 +27,7 @@ const authStore = useAuthStore();
 </script>
 
 <template>
+    <SearchCards />
     <div
         class="relative z-10 flex min-h-dvh flex-col bg-background bg-gradient-to-b from-background via-background to-muted/60 text-foreground"
     >

@@ -19,10 +19,28 @@ const YGOProDeckCardPricesSchema = v.object({
 });
 
 const YGOProDeckBanlistInfoSchema = v.object({
-    ban_goat: v.union(v.literal("Forbidden"), v.literal("Limited"), v.literal("Semi-Limited")),
-    ban_ocg: v.union(v.literal("Forbidden"), v.literal("Limited"), v.literal("Semi-Limited")),
-    ban_tcg: v.union(v.literal("Forbidden"), v.literal("Limited"), v.literal("Semi-Limited")),
-})
+    ban_goat: v.optional(
+        v.union(
+            v.literal("Forbidden"),
+            v.literal("Limited"),
+            v.literal("Semi-Limited"),
+        ),
+    ),
+    ban_ocg: v.optional(
+        v.union(
+            v.literal("Forbidden"),
+            v.literal("Limited"),
+            v.literal("Semi-Limited"),
+        ),
+    ),
+    ban_tcg: v.optional(
+        v.union(
+            v.literal("Forbidden"),
+            v.literal("Limited"),
+            v.literal("Semi-Limited"),
+        ),
+    ),
+});
 
 export const YGOProDeckCardImageSchema = v.object({
     id: v.number(),
@@ -39,23 +57,24 @@ export const YGOProDeckCardSchema = v.object({
     type: v.string(),
     frameType: v.string(),
     desc: v.string(),
+    pend_desc: v.optional(v.string()),
+    monster_desc: v.optional(v.string()),
     atk: v.optional(v.number()),
     def: v.optional(v.number()),
     level: v.optional(v.number()),
     race: v.optional(v.string()),
     archetype: v.optional(v.string()),
     attribute: v.optional(v.string()),
+    scale: v.optional(v.number()),
     linkval: v.optional(v.number()),
     linkmarkers: v.optional(v.array(v.string())),
     typeline: v.optional(v.array(v.string())),
     ygoprodeck_url: v.optional(v.string()),
     humanReadableCardType: v.optional(v.string()),
     banlist_info: v.optional(YGOProDeckBanlistInfoSchema),
-    card_sets: v.array(YGOProDeckCardSetSchema),
+    card_sets: v.optional(v.array(YGOProDeckCardSetSchema)),
     card_prices: v.optional(v.array(YGOProDeckCardPricesSchema)),
-    card_images: v.array(
-        YGOProDeckCardImageSchema,
-    ),
+    card_images: v.array(YGOProDeckCardImageSchema),
 });
 
 export type YGOProDeckCard = Infer<typeof YGOProDeckCardSchema>;

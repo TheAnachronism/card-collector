@@ -9,7 +9,7 @@ export const listForUser = query({
         const user = await getUser(ctx);
         return await ctx.db
             .query("collections")
-            .filter((q) => q.eq(q.field("user"), user._id))
+            .withIndex("userId", (q) => q.eq("userId", user._id.toString()))
             .collect();
     },
 });
@@ -20,7 +20,7 @@ export const create = mutation({
     handler: async (ctx, { name }) => {
         const user = await getUser(ctx);
         const id = await ctx.db.insert("collections", {
-            user: user._id,
+            userId: user._id.toString(),
             name,
             cards: [],
         });
@@ -34,7 +34,7 @@ export const getById = query({
     handler: async (ctx, { id }) => {
         const user = await getUser(ctx);
         const doc = await ctx.db.get(id);
-        if (!doc || doc.user !== user._id) return null;
+        if (!doc || doc.userId !== user._id.toString()) return null;
         return doc;
     },
 });
@@ -45,7 +45,7 @@ export const remove = mutation({
     handler: async (ctx, { id }) => {
         const user = await getUser(ctx);
         const existing = await ctx.db.get(id);
-        if (!existing || existing.user !== user._id) {
+        if (!existing || existing.userId !== user._id.toString()) {
             return null;
         }
         // Best-effort cleanup of referenced collection card documents

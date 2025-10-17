@@ -32,28 +32,30 @@ export default defineSchema({
         .index("cardId", ["cardId"])
         .index("setCode", ["setCode"]),
     ownedCards: defineTable({
-        user: v.id("user"),
+        userId: v.string(),
         card: v.id("cards"),
         box: v.optional(v.id("boxes")),
         collection: v.optional(v.id("collections")),
-    }),
+    })
+        .index("userId", ["userId"])
+        .index("card", ["card"]),
     collectionsCard: defineTable({
         card: v.id("ownedCards"),
         quantity: v.number(),
-    }),
+    }).index("card", ["card"]),
     collections: defineTable({
-        user: v.id("user"),
+        userId: v.string(),
         name: v.string(),
         cards: v.array(v.id("collectionsCard")),
-    }),
+    }).index("userId", ["userId"]),
     decks: defineTable({
-        user: v.id("user"),
+        userId: v.string(),
         name: v.string(),
         cards: v.array(v.id("ownedCards")),
-    }),
+    }).index("userId", ["userId"]),
     boxes: defineTable({
-        user: v.id("user"),
+        userId: v.string(),
         name: v.string(),
         cards: v.array(v.id("ownedCards")),
-    }),
+    }).index("userId", ["userId"]),
 });

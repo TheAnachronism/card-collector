@@ -114,8 +114,8 @@ watch(
                     {{ isLoading ? "Searching…" : "Search" }}
                 </Button>
             </div>
-            <p class="text-xs text-muted-foreground">
-                Tip: We'll auto-detect set codes and names.
+            <p class="text-sm text-muted-foreground" :class="{ 'opacity-0': !results.length }">
+                Found {{ results.length }} cards
             </p>
             <p v-if="error" class="text-sm text-red-500">{{ error }}</p>
             <p
@@ -137,7 +137,12 @@ watch(
                     class="overflow-hidden glass"
                 >
                     <div class="relative bg-muted/40">
-                        <NuxtImg v-if="firstImage(card)" :src="firstImage(card)!" :alt="card.name" class="px-2 w-full object-top max-h-64 object-cover" />
+                        <NuxtImg
+                            v-if="firstImage(card)"
+                            :src="firstImage(card)!"
+                            :alt="card.name"
+                            class="px-2 w-full object-top max-h-64 object-cover"
+                        />
                         <div
                             v-else
                             class="w-full grid place-items-center text-muted-foreground text-sm"
@@ -178,6 +183,9 @@ watch(
                 Enter a query to search for cards.
             </div>
         </template>
-        <AuthSignInBlock title="Search results" description="Sign in to browse card search results." />
+        <AuthSignInBlock
+            title="Search results"
+            description="Sign in to browse card search results."
+        />
     </div>
 </template>

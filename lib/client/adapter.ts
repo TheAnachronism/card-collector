@@ -214,7 +214,7 @@ export const convexAdapter = <
                 prop(data.sortBy.field),
                 data.sortBy.direction,
               ]);
-              console.log(result);
+              // console.log(result);
               return result;
             }
             return docs;
