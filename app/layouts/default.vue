@@ -27,7 +27,7 @@ const authStore = useAuthStore();
 </script>
 
 <template>
-    <SearchCards />
+    <SearchCardsDialog />
     <div
         class="relative z-10 flex min-h-dvh flex-col bg-background bg-gradient-to-b from-background via-background to-muted/60 text-foreground"
     >
@@ -36,10 +36,10 @@ const authStore = useAuthStore();
             class="sticky top-0 z-40 border-b border-border bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/55"
         >
             <div
-                class="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-2 px-3 py-2 md:px-4"
+                class="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-2 px-3 py-2 md:grid md:grid-cols-[auto_1fr_auto] md:items-center md:gap-2 md:px-4"
             >
                 <!-- Left: mobile menu button + logo -->
-                <div class="flex items-center gap-2">
+                <div class="order-1 flex items-center gap-2">
                     <Sheet v-model:open="mobileOpen">
                         <SheetTrigger as-child>
                             <Button
@@ -51,7 +51,10 @@ const authStore = useAuthStore();
                                 <Menu class="size-5" />
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" class="w-80 p-0">
+                        <SheetContent
+                            side="left"
+                            class="w-80 max-w-full p-0 sm:w-96"
+                        >
                             <aside class="h-full flex flex-col">
                                 <div
                                     class="px-4 py-3 border-b border-border flex items-center gap-2"
@@ -113,9 +116,9 @@ const authStore = useAuthStore();
                 </div>
 
                 <!-- Center: search -->
-                <div class="px-1">
+                <div class="order-3 w-full px-1 md:order-2 md:w-auto">
                     <div
-                        class="relative group max-w-xl w-full mx-auto md:mx-0 md:w-[480px]"
+                        class="group relative mx-auto w-full max-w-xl md:mx-0 md:w-[480px]"
                     >
                         <Search
                             class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -135,7 +138,9 @@ const authStore = useAuthStore();
 
                 <!-- Right: actions -->
                 <ClientOnly fallback-tag="span">
-                    <div class="flex items-center gap-1">
+                    <div
+                        class="order-2 ml-auto flex items-center gap-1 md:order-3 md:ml-0"
+                    >
                         <Authenticated>
                             <TooltipProvider>
                                 <Tooltip>
@@ -228,9 +233,8 @@ const authStore = useAuthStore();
 
         <!-- Main content area with optional desktop sidebar -->
         <div
-            class="mx-auto grid w-7xl flex-1 grid-cols-1 md:grid-cols-[260px_1fr]"
+            class="mx-auto grid max-w-7xl lg:min-w-6xl flex-1 grid-cols-1 md:grid-cols-[260px_1fr]"
         >
-            <!-- Desktop sidebar -->
             <aside
                 class="sticky top-[57px] hidden h-[calc(100dvh-57px)] md:block border-r border-border"
             >
@@ -257,30 +261,11 @@ const authStore = useAuthStore();
                 </ScrollArea>
             </aside>
 
-            <!-- Content -->
-            <main class="relative z-10 p-3 md:p-6">
+            <main class="relative z-10 p-3 pb-24 md:p-6 md:pb-6">
                 <div class="mx-auto max-w-4xl">
                     <slot />
                 </div>
             </main>
         </div>
-
-        <!-- Mobile bottom nav -->
-        <nav
-            class="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/70 backdrop-blur"
-        >
-            <ul class="grid grid-cols-4">
-                <li v-for="item in primaryNav" :key="item.to">
-                    <NuxtLink
-                        :to="item.to"
-                        class="flex flex-col items-center gap-1 py-2 text-xs"
-                        exact-active-class="text-primary"
-                    >
-                        <component :is="item.icon" class="size-5" />
-                        {{ item.label }}
-                    </NuxtLink>
-                </li>
-            </ul>
-        </nav>
     </div>
 </template>
