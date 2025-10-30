@@ -35,40 +35,15 @@ type AppApi = typeof apiUntyped & {
 };
 const api = apiUntyped as AppApi;
 
-type CollectionDoc = {
-    _id: Id<"collections">;
-    name: string;
-    cards: Id<"collectionsCard">[];
-};
+const { data: collections } = useConvexQuery(
+    api.collections.listForUser,
+    {} as Record<string, never>,
+);
 
-const collections = ref<CollectionDoc[]>([]);
 const isLoading = ref(false);
 const error = ref<string | null>(null);
 const newName = ref("");
 const auth = useAuthStore();
-
-async function loadCollections() {
-    if (!auth.isAuthenticated) {
-        collections.value = [];
-        return;
-    }
-    isLoading.value = true;
-    error.value = null;
-    try {
-        const data = await client.query(
-            api.collections.listForUser,
-            {} as Record<string, never>,
-        );
-        collections.value = Array.isArray(data)
-            ? (data as CollectionDoc[])
-            : [];
-    } catch (e: unknown) {
-        error.value =
-            e instanceof Error ? e.message : "Failed to load collections";
-    } finally {
-        isLoading.value = false;
-    }
-}
 
 async function onCreate() {
     if (!auth.isAuthenticated) return;
@@ -79,7 +54,6 @@ async function onCreate() {
     try {
         await client.mutation(api.collections.create, { name });
         newName.value = "";
-        await loadCollections();
     } catch (e: unknown) {
         error.value =
             e instanceof Error ? e.message : "Failed to create collection";
@@ -98,7 +72,6 @@ async function onDelete(id: Id<"collections">) {
     isLoading.value = true;
     try {
         await client.mutation(api.collections.remove, { id });
-        await loadCollections();
     } catch (e: unknown) {
         error.value =
             e instanceof Error ? e.message : "Failed to delete collection";
@@ -110,9 +83,7 @@ async function onDelete(id: Id<"collections">) {
 watch(
     () => auth.status,
     (status) => {
-        if (status === "authenticated") {
-            loadCollections();
-        } else {
+        if (status !== "authenticated") {
             collections.value = [];
             isLoading.value = false;
             error.value = null;
@@ -143,7 +114,7 @@ watch(
             </Card>
 
             <div
-                v-if="collections.length"
+                v-if="collections?.length"
                 class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
             >
                 <CollectionCard

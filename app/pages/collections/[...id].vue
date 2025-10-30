@@ -5,6 +5,7 @@ import { api as apiUntyped } from "~~/convex/_generated/api";
 import type { Id } from "~~/convex/_generated/dataModel";
 
 import SearchCards from "@/components/SearchCards.vue";
+import CollectionCardItem from "@/components/CollectionCardItem.vue";
 
 import useSearchDialog from "@/composables/useSearchDialog";
 
@@ -22,19 +23,31 @@ type AppApi = typeof apiUntyped & {
                 _id: Id<"collections">;
                 name: string;
                 cards: Id<"collectionsCard">[];
+                collectionCards: Array<{
+                    _id: Id<"collectionsCard">;
+                    quantity: number;
+                    setCode: string;
+                    card: {
+                        _id: Id<"cards">;
+                        name: string;
+                        ygoId: number;
+                        type: string;
+                        race: string;
+                        attribute?: string;
+                        cardImages: Array<{
+                            id: number;
+                            imageUrl: string;
+                            imageUrlSmall: string;
+                            imageUrlCropped: string;
+                        }>;
+                    };
+                }>;
             } | null
         >;
     };
 };
 const api = apiUntyped as AppApi;
 
-type CollectionDoc = {
-    _id: Id<"collections">;
-    name: string;
-    cards: Id<"collectionsCard">[];
-};
-
-const collection = ref<CollectionDoc | null>(null);
 const isLoading = ref(false);
 const error = ref<string | null>(null);
 
@@ -44,28 +57,18 @@ const id = computed(() => {
     return (route.params.id as string[])[0] as Id<"collections">;
 });
 
+const { data: collection } = useConvexQuery(api.collections.getById, {
+    id: id.value
+});
+
 async function openSearchCardsDialog() {
+    if (!id.value) return;
     searchDialog.open({
         component: SearchCards,
+        props: {
+            collectionId: id.value,
+        },
     });
-    // searchDialog.close();
-}
-
-async function load() {
-    if (!id.value) return;
-    isLoading.value = true;
-    error.value = null;
-    try {
-        const doc = await client.query(api.collections.getById, {
-            id: id.value,
-        });
-        collection.value = doc as CollectionDoc | null;
-    } catch (e: unknown) {
-        error.value =
-            e instanceof Error ? e.message : "Failed to load collection";
-    } finally {
-        isLoading.value = false;
-    }
 }
 
 async function deleteCollection() {
@@ -87,7 +90,6 @@ async function deleteCollection() {
     }
 }
 
-onMounted(load);
 </script>
 
 <template>
@@ -133,9 +135,26 @@ onMounted(load);
             <Card class="glass p-4">
                 <div class="text-sm text-muted-foreground">
                     Cards in this collection:
-                    {{ collection.cards?.length || 0 }}
+                    {{ collection.collectionCards?.length || 0 }}
                 </div>
             </Card>
+
+            <div
+                v-if="collection.collectionCards && collection.collectionCards.length > 0"
+                class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+            >
+                <CollectionCardItem
+                    v-for="collectionCard in collection.collectionCards"
+                    :key="collectionCard._id"
+                    :collection-card="collectionCard"
+                />
+            </div>
+            <div
+                v-else
+                class="text-sm text-muted-foreground text-center py-8"
+            >
+                No cards in this collection yet. Search for cards to add them.
+            </div>
         </div>
     </div>
 </template>

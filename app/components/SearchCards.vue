@@ -2,6 +2,16 @@
 import type { ConvexClient } from "convex/browser";
 import { api } from "~~/convex/_generated/api";
 import type { YGOProDeckCard } from "~~/convex/responses/YGOProDeckResponses";
+import type { Id } from "~~/convex/_generated/dataModel";
+import AddCardQuantityDialog from "./AddCardQuantityDialog.vue";
+
+const props = defineProps<{
+    collectionId?: Id<"collections">;
+}>();
+
+const emit = defineEmits<{
+    cardAdded: [];
+}>();
 
 const client = useConvexClient() as unknown as ConvexClient;
 
@@ -9,6 +19,10 @@ const query = ref("");
 const isLoading = ref(false);
 const results = ref<YGOProDeckCard[]>([]);
 const error = ref<string | null>(null);
+const selectedCard = ref<YGOProDeckCard | null>(null);
+const selectedSetCode = ref("");
+const quantityDialogOpen = ref(false);
+const searchedBySetCode = ref(false);
 
 function isLikelySetCode(value: string): boolean {
     const v = value.trim().toUpperCase();
@@ -25,14 +39,17 @@ async function onSearch() {
     error.value = null;
     isLoading.value = true;
     results.value = [];
+    searchedBySetCode.value = false;
     try {
         if (isLikelySetCode(q)) {
+            searchedBySetCode.value = true;
             const res = await client.action(api.cards.searchBySetCode, {
                 setCode: q,
             });
             if (Array.isArray(res) && res.length > 0) {
                 results.value = (res ?? []) as YGOProDeckCard[];
             } else {
+                searchedBySetCode.value = false;
                 const resName = await client.action(
                     api.cards.searchByCardName,
                     {
@@ -42,6 +59,7 @@ async function onSearch() {
                 results.value = (resName ?? []) as YGOProDeckCard[];
             }
         } else {
+            searchedBySetCode.value = false;
             const res = await client.action(api.cards.searchByCardName, {
                 name: q,
             });
@@ -52,6 +70,43 @@ async function onSearch() {
     } finally {
         isLoading.value = false;
     }
+}
+
+function onCardClick(card: YGOProDeckCard) {
+    if (!props.collectionId || !searchedBySetCode.value) return;
+
+    // Use the set code from the search query
+    const searchedSetCode = query.value.trim();
+    
+    // Find the set code that matches the search query
+    // Since searchBySetCode returns cards with that set code, we should find a match
+    const normalizedQuery = searchedSetCode.toUpperCase();
+    const matchingSet = card.card_sets?.find((s) => {
+        const setCodeUpper = s.set_code.toUpperCase();
+        return (
+            setCodeUpper === normalizedQuery ||
+            setCodeUpper.includes(normalizedQuery) ||
+            normalizedQuery.includes(setCodeUpper)
+        );
+    });
+
+    if (matchingSet) {
+        selectedCard.value = card;
+        // Use the actual set code from the card's sets (normalized)
+        selectedSetCode.value = matchingSet.set_code;
+        quantityDialogOpen.value = true;
+    } else if (card.card_sets && card.card_sets.length > 0) {
+        // Fallback: if no exact match, use the first set code
+        // This shouldn't happen if searchBySetCode worked correctly
+        selectedCard.value = card;
+        selectedSetCode.value = card.card_sets[0].set_code;
+        quantityDialogOpen.value = true;
+    }
+}
+
+function onCardAdded() {
+    emit("cardAdded");
+    quantityDialogOpen.value = false;
 }
 
 function firstImage(card: YGOProDeckCard): string | null {
@@ -101,6 +156,11 @@ function firstImage(card: YGOProDeckCard): string | null {
                 v-for="card in results"
                 :key="card.id"
                 class="overflow-hidden glass"
+                :class="{
+                    'cursor-pointer hover:ring-2 hover:ring-primary':
+                        collectionId && searchedBySetCode,
+                }"
+                @click="onCardClick(card)"
             >
                 <div class="relative bg-muted/40">
                     <NuxtImg
@@ -149,4 +209,13 @@ function firstImage(card: YGOProDeckCard): string | null {
     <div v-else class="text-sm text-muted-foreground">
         Enter a query to search for cards.
     </div>
+
+    <AddCardQuantityDialog
+        v-if="collectionId"
+        v-model:open="quantityDialogOpen"
+        :card="selectedCard"
+        :collection-id="collectionId"
+        :set-code="selectedSetCode"
+        @added="onCardAdded"
+    />
 </template>

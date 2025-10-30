@@ -42,6 +42,7 @@ export default defineSchema({
     collectionsCard: defineTable({
         card: v.id("ownedCards"),
         quantity: v.number(),
+        setCode: v.string(),
     }).index("card", ["card"]),
     collections: defineTable({
         userId: v.string(),

@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import useSearchDialog from "@/composables/useSearchDialog";
+import type { Id } from "~~/convex/_generated/dataModel";
 
 const searchDialog = useSearchDialog();
+
+const collectionId = computed(() => {
+    return searchDialog.props.value?.collectionId as
+        | Id<"collections">
+        | undefined;
+});
 </script>
 
 <template>
@@ -15,11 +22,18 @@ const searchDialog = useSearchDialog();
             <DialogHeader>
                 <DialogTitle>Search Cards</DialogTitle>
                 <DialogDescription>
-                    Search for cards by name or set code.
+                    {{
+                        collectionId
+                            ? "Search for cards by set code to add to your collection."
+                            : "Search for cards by name or set code."
+                    }}
                 </DialogDescription>
             </DialogHeader>
 
-            <SearchCards />
+            <SearchCards
+                :collection-id="collectionId"
+                @card-added="searchDialog.close"
+            />
         </DialogContent>
     </Dialog>
 </template>
