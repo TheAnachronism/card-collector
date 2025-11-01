@@ -137,6 +137,86 @@ export const addCard = mutation({
     },
 });
 
+// Update quantity of a collection card
+export const updateCollectionCardQuantity = mutation({
+    args: {
+        collectionCardId: v.id("collectionsCard"),
+        change: v.number(), // Can be positive (increase), negative (decrease), or 0 for absolute set
+        absoluteValue: v.optional(v.number()), // If provided, set to this absolute value
+    },
+    handler: async (ctx, { collectionCardId, change, absoluteValue }) => {
+        const user = await getUser(ctx);
+        const collectionCard = await ctx.db.get(collectionCardId);
+        if (!collectionCard) {
+            throw new Error("Collection card not found");
+        }
+
+        // Verify ownership through the ownedCard -> collection chain
+        const ownedCard = await ctx.db.get(collectionCard.card);
+        if (!ownedCard) {
+            throw new Error("Owned card not found");
+        }
+
+        const collection = await ctx.db.get(ownedCard.collection!);
+        if (!collection || collection.userId !== user._id.toString()) {
+            throw new Error("Collection not found or access denied");
+        }
+
+        let newQuantity: number;
+        if (absoluteValue !== undefined) {
+            newQuantity = Math.max(0, absoluteValue);
+        } else {
+            newQuantity = Math.max(0, collectionCard.quantity + change);
+        }
+
+        if (newQuantity === 0) {
+            // Remove the card from collection
+            await ctx.db.patch(collection._id, {
+                cards: collection.cards.filter((id) => id !== collectionCardId),
+            });
+            await ctx.db.delete(collectionCardId);
+            return null;
+        } else {
+            await ctx.db.patch(collectionCardId, {
+                quantity: newQuantity,
+            });
+            return newQuantity;
+        }
+    },
+});
+
+// Remove a collection card entirely
+export const removeCollectionCard = mutation({
+    args: { collectionCardId: v.id("collectionsCard") },
+    handler: async (ctx, { collectionCardId }) => {
+        const user = await getUser(ctx);
+        const collectionCard = await ctx.db.get(collectionCardId);
+        if (!collectionCard) {
+            throw new Error("Collection card not found");
+        }
+
+        // Verify ownership through the ownedCard -> collection chain
+        const ownedCard = await ctx.db.get(collectionCard.card);
+        if (!ownedCard) {
+            throw new Error("Owned card not found");
+        }
+
+        const collection = await ctx.db.get(ownedCard.collection!);
+        if (!collection || collection.userId !== user._id.toString()) {
+            throw new Error("Collection not found or access denied");
+        }
+
+        // Remove from collection's cards array
+        await ctx.db.patch(collection._id, {
+            cards: collection.cards.filter((id) => id !== collectionCardId),
+        });
+
+        // Delete the collection card
+        await ctx.db.delete(collectionCardId);
+        return null;
+    },
+});
+
 // Delete a collection (and clean up its collection card refs) if owned by current user
 export const remove = mutation({
     args: { id: v.id("collections") },

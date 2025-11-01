@@ -53,6 +53,22 @@ type AppApi = typeof apiUntyped & {
             { id: Id<"collections"> },
             null
         >;
+        updateCollectionCardQuantity: FunctionReference<
+            "mutation",
+            "public",
+            {
+                collectionCardId: Id<"collectionsCard">;
+                change: number;
+                absoluteValue?: number;
+            },
+            number | null
+        >;
+        removeCollectionCard: FunctionReference<
+            "mutation",
+            "public",
+            { collectionCardId: Id<"collectionsCard"> },
+            null
+        >;
     };
 };
 const api = apiUntyped as AppApi;
@@ -67,6 +83,14 @@ const queryArgs = computed(() => ({
 }));
 
 const { data: collection } = useConvexQuery(api.collections.getById, queryArgs);
+
+const totalQuantity = computed(() => {
+    if (!collection.value?.collectionCards) return 0;
+    return collection.value.collectionCards.reduce(
+        (sum, card) => sum + card.quantity,
+        0,
+    );
+});
 
 async function openSearchCardsDialog() {
     searchDialog.open({
@@ -93,6 +117,10 @@ async function deleteCollection() {
     } finally {
         isLoading.value = false;
     }
+}
+
+function onCardUpdated() {
+    // The query will automatically refresh, but we can add any additional logic here if needed
 }
 </script>
 
@@ -139,7 +167,7 @@ async function deleteCollection() {
             <Card class="glass p-4">
                 <div class="text-sm text-muted-foreground">
                     Cards in this collection:
-                    {{ collection.collectionCards?.length || 0 }}
+                    {{ totalQuantity }}
                 </div>
             </Card>
 
@@ -151,6 +179,7 @@ async function deleteCollection() {
                     v-for="collectionCard in collection.collectionCards"
                     :key="collectionCard._id"
                     :collection-card="collectionCard"
+                    @updated="onCardUpdated"
                 />
             </div>
             <div
